@@ -1,0 +1,6 @@
+spannerdb:
+    prefix: odm-ut-
+    project_id: 'binguo-learning-centre'
+    instance_id: 'oasis-testing'
+    database_id: 'oasis-db-1'
+    cache_pool_sessions: 1
