@@ -10,12 +10,16 @@
 namespace Oasis\Mlib\ODM\Spanner\Driver\Google;
 
 
+use Exception;
 use Google\Auth\Cache\SysVCacheItemPool;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\KeySet;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\SpannerClient;
+use Google\Cloud\Spanner\Transaction;
+use Oasis\Mlib\ODM\Dynamodb\Exceptions\DataConsistencyException;
 use Oasis\Mlib\ODM\Dynamodb\Exceptions\ODMException;
+use Oasis\Mlib\ODM\Dynamodb\ItemReflection;
 
 /**
  * Class SpannerTable
@@ -38,7 +42,12 @@ class SpannerTable
      */
     private $attributeTypes;
 
-    public function __construct(array $dbConfig, $tableName, $attributeTypes = [])
+    /**
+     * @var ItemReflection
+     */
+    private $itemReflection;
+
+    public function __construct(array $dbConfig, $tableName, ItemReflection $itemReflection)
     {
         $authCache    = new SysVCacheItemPool();
         $sessionCache = new SysVCacheItemPool(
@@ -69,7 +78,8 @@ class SpannerTable
         );
         $this->database       = $instance->database($dbConfig['database_id'], ['sessionPool' => $sessionPool]);
         $this->tableName      = self::convertTableName($tableName);
-        $this->attributeTypes = $attributeTypes;
+        $this->itemReflection = $itemReflection;
+        $this->attributeTypes = $itemReflection->getAttributeTypes();
 
         // warm up will actually create the sessions for the first time.
         $sessionPool->warmup();
@@ -109,17 +119,68 @@ class SpannerTable
         return [$keys, $isConsistentRead, $concurrency, $projectedFields, $keyIsTyped, $retryDelay, $maxDelay];
     }
 
-    /** @noinspection PhpUnusedParameterInspection */
     public function set(array $obj, $checkValues = [])
     {
-        $this->database->transaction(['singleUse' => true])
-            ->insertOrUpdateBatch(
-                $this->tableName,
-                [
-                    $obj,
-                ]
-            )
-            ->commit();
+        if (empty($checkValues)) {
+            $this->database->transaction(['singleUse' => true])
+                ->insertOrUpdateBatch(
+                    $this->tableName,
+                    [
+                        $obj,
+                    ]
+                )
+                ->commit();
+
+            return true;
+        }
+
+        // Do check and set in transaction
+        $tableName = $this->tableName;
+        $columns   = array_keys($this->attributeTypes);
+        $className = $this->itemReflection->getItemClass();
+        $keySet    = new KeySet(
+            [
+                'keys' => array_values($this->itemReflection->getPrimaryKeys($obj)),
+            ]
+        );
+
+        $this->database->runTransaction(
+            function (Transaction $t) use ($obj, $tableName, $columns, $keySet, $checkValues, $className) {
+                $rawData = [];
+
+                try {
+                    $readRet = $t->read(
+                        $tableName,
+                        $keySet,
+                        $columns
+                    );
+
+                    $rawData = $readRet->rows()->current();
+                } catch (Exception $exception) {
+                    // do nothing
+                }
+
+                // compare values
+                if (!empty($rawData)) {
+                    foreach ($checkValues as $k => $val) {
+                        if ($rawData[$k] !== $val) {
+                            throw new DataConsistencyException(
+                                "Item updated elsewhere! type = {$className}"
+                            );
+                        }
+                    }
+                }
+
+                // do commit
+                $t->insertOrUpdateBatch(
+                    $tableName,
+                    [
+                        $obj,
+                    ]
+                );
+                $t->commit();
+            }
+        );
 
         return true;
     }
