@@ -10,6 +10,8 @@
 namespace Oasis\Mlib\ODM\Spanner\Schema;
 
 
+use Oasis\Mlib\ODM\Dynamodb\DBAL\Schema\AbstractSchemaTool;
+
 /**
  * Class SpannerDbSchemaTool
  * @package Oasis\Mlib\ODM\Dynamodb\DBAL\Schema

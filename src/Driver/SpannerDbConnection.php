@@ -9,25 +9,22 @@
 namespace Oasis\Mlib\ODM\Spanner\Driver;
 
 
+use Oasis\Mlib\ODM\Dynamodb\DBAL\Drivers\AbstractDbConnection;
+use Oasis\Mlib\ODM\Dynamodb\Exceptions\ODMException;
+use Oasis\Mlib\ODM\Dynamodb\ItemManager;
 use Oasis\Mlib\ODM\Spanner\Driver\Google\SpannerTable;
+use Oasis\Mlib\ODM\Spanner\Schema\SpannerDbSchemaTool;
 
 /**
  * Class SpannerDbConnection
  * @package Oasis\Mlib\ODM\Dynamodb\DBAL\Drivers
  */
-class SpannerDbConnection implements Connection
+class SpannerDbConnection extends AbstractDbConnection
 {
     /**
      * @var SpannerTable
      */
-    protected $spannerTable;
-
-    protected function getSpannerTable()
-    {
-        //$this->spannerTable = new SpannerTable($dbConfig, $tableName, $attributeTypes);
-
-        return $this->spannerTable;
-    }
+    protected $spannerTable = null;
 
     public function batchGet(
         array $keys,
@@ -47,6 +44,28 @@ class SpannerDbConnection implements Connection
             $retryDelay,
             $maxDelay
         );
+    }
+
+    protected function getSpannerTable()
+    {
+        if ($this->spannerTable !== null) {
+            return $this->spannerTable;
+        }
+        if (empty($this->tableName)) {
+            throw new ODMException("Unknown table name to initialize spanner client");
+        }
+
+        if (empty($this->attributeTypes)) {
+            throw new ODMException("Unknown attribute types to initialize spanner client");
+        }
+
+        $this->spannerTable = new SpannerTable(
+            $this->dbConfig,
+            $this->tableName,
+            $this->itemReflection
+        );
+
+        return $this->spannerTable;
     }
 
     public function batchDelete(array $objs, $concurrency = 10, $maxDelay = 15000)
@@ -178,5 +197,13 @@ class SpannerDbConnection implements Connection
         $parallel = 10
     ) {
         // TODO: Implement scanCount() method.
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSchemaTool(ItemManager $im, $classReflections, callable $outputFunction = null)
+    {
+        return new SpannerDbSchemaTool($im, $classReflections, $outputFunction);
     }
 }

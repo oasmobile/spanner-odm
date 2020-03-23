@@ -4,7 +4,7 @@
     "type": "library",
     "require": {
         "google/cloud-spanner": "^1.26",
-        "oasis/dynamodb-odm": "^0.5.3"
+        "oasis/dynamodb-odm": "^1.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^7.5",
