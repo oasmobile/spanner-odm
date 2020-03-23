@@ -207,7 +207,7 @@ class SpannerTable
             return $row;
         }
 
-        return [];
+        return null;
     }
 
 }
