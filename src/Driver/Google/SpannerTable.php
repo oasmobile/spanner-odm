@@ -12,6 +12,8 @@ namespace Oasis\Mlib\ODM\Spanner\Driver\Google;
 
 use Exception;
 use Google\Auth\Cache\SysVCacheItemPool;
+use Google\Cloud\Core\Exception\AbortedException as AbortedExceptionAlias;
+use Google\Cloud\Core\Exception\GoogleException as GoogleExceptionAlias;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\KeySet;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
@@ -47,6 +49,13 @@ class SpannerTable
      */
     private $itemReflection;
 
+    /**
+     * SpannerTable constructor.
+     * @param  array  $dbConfig
+     * @param $tableName
+     * @param  ItemReflection  $itemReflection
+     * @throws GoogleExceptionAlias
+     */
     public function __construct(array $dbConfig, $tableName, ItemReflection $itemReflection)
     {
         $authCache    = new SysVCacheItemPool();
@@ -101,12 +110,25 @@ class SpannerTable
         return $config;
     }
 
+    /**
+     * @param $tableName
+     * @return string|string[]
+     */
     public static function convertTableName($tableName)
     {
         return str_replace('-', '_', $tableName);
     }
 
-
+    /**
+     * @param  array  $keys
+     * @param  bool  $isConsistentRead
+     * @param  int  $concurrency
+     * @param  array  $projectedFields
+     * @param  bool  $keyIsTyped
+     * @param  int  $retryDelay
+     * @param  int  $maxDelay
+     * @return array
+     */
     public function batchGet(
         array $keys,
         $isConsistentRead = false,
@@ -119,6 +141,12 @@ class SpannerTable
         return [$keys, $isConsistentRead, $concurrency, $projectedFields, $keyIsTyped, $retryDelay, $maxDelay];
     }
 
+    /**
+     * @param  array  $obj
+     * @param  array  $checkValues
+     * @return bool
+     * @throws AbortedExceptionAlias
+     */
     public function set(array $obj, $checkValues = [])
     {
         if (empty($checkValues)) {
@@ -185,7 +213,13 @@ class SpannerTable
         return true;
     }
 
-    /** @noinspection PhpUnusedParameterInspection */
+    /**
+     * @param  array  $keys
+     * @param  bool  $is_consistent_read
+     * @param  array  $projectedFields
+     * @return mixed|null
+     * @noinspection PhpUnusedParameterInspection
+     */
     public function get(array $keys, $is_consistent_read = false, $projectedFields = [])
     {
         if (empty($keys)) {
@@ -210,6 +244,11 @@ class SpannerTable
         return null;
     }
 
+    /**
+     * @param  array  $objs
+     * @return bool
+     * @throws AbortedExceptionAlias
+     */
     public function batchPut(array $objs)
     {
         $this->database->transaction(['singleUse' => true])
@@ -222,6 +261,11 @@ class SpannerTable
         return true;
     }
 
+    /**
+     * @param  array  $objs
+     * @return bool
+     * @throws AbortedExceptionAlias
+     */
     public function batchDelete(array $objs)
     {
         $t = $this->database->transaction(['singleUse' => true]);
