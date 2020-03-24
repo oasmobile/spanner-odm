@@ -210,4 +210,35 @@ class SpannerTable
         return null;
     }
 
+    public function batchPut(array $objs)
+    {
+        $this->database->transaction(['singleUse' => true])
+            ->insertOrUpdateBatch(
+                $this->tableName,
+                $objs
+            )
+            ->commit();
+
+        return true;
+    }
+
+    public function batchDelete(array $objs)
+    {
+        $t = $this->database->transaction(['singleUse' => true]);
+
+        foreach ($objs as $obj) {
+            $t->delete(
+                $this->tableName,
+                new KeySet(
+                    [
+                        'keys' => array_values($this->itemReflection->getPrimaryKeys($obj)),
+                    ]
+                )
+            );
+        }
+        $t->commit();
+
+        return true;
+    }
+
 }

@@ -55,8 +55,8 @@ class SpannerDbConnection extends AbstractDbConnection
             throw new ODMException("Unknown table name to initialize spanner client");
         }
 
-        if (empty($this->attributeTypes)) {
-            throw new ODMException("Unknown attribute types to initialize spanner client");
+        if ($this->itemReflection === null) {
+            throw new ODMException("Unknown item reflection to initialize spanner client");
         }
 
         $this->spannerTable = new SpannerTable(
@@ -70,12 +70,12 @@ class SpannerDbConnection extends AbstractDbConnection
 
     public function batchDelete(array $objs, $concurrency = 10, $maxDelay = 15000)
     {
-        // TODO: Implement batchDelete() method.
+        return $this->spannerTable->batchDelete($objs);
     }
 
     public function batchPut(array $objs, $concurrency = 10, $maxDelay = 15000)
     {
-        // TODO: Implement batchPut() method.
+        $this->spannerTable->batchPut($objs);
     }
 
     public function set(array $obj, $checkValues = [])

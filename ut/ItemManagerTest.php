@@ -76,6 +76,7 @@ class ItemManagerTest extends TestCase
      *
      * @param $id
      * @return string
+     * @noinspection PhpParamsInspection
      */
     public function testEdit($id)
     {
@@ -102,6 +103,7 @@ class ItemManagerTest extends TestCase
      * @depends testEdit
      *
      * @param $id
+     * @noinspection PhpParamsInspection
      */
     public function testCASEnabled($id)
     {
