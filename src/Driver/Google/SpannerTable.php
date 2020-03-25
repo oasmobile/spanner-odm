@@ -121,24 +121,42 @@ class SpannerTable
 
     /**
      * @param  array  $keys
-     * @param  bool  $isConsistentRead
-     * @param  int  $concurrency
-     * @param  array  $projectedFields
-     * @param  bool  $keyIsTyped
-     * @param  int  $retryDelay
-     * @param  int  $maxDelay
      * @return array
      */
-    public function batchGet(
-        array $keys,
-        $isConsistentRead = false,
-        $concurrency = 10,
-        $projectedFields = [],
-        $keyIsTyped = false,
-        $retryDelay = 0,
-        $maxDelay = 15000
-    ) {
-        return [$keys, $isConsistentRead, $concurrency, $projectedFields, $keyIsTyped, $retryDelay, $maxDelay];
+    public function batchGet(array $keys)
+    {
+        if (empty($keys)) {
+            throw new ODMException("keys can not be empty for batchGet item action");
+        }
+
+        $returnSet = [];
+        $keyValues = [];
+        foreach ($keys as $key) {
+            if (!empty($key)) {
+                $keyValues[] = array_values($key);
+            }
+        }
+
+        if (empty($keyValues)) {
+            return $returnSet;
+        }
+
+        $keySet  = new KeySet(
+            [
+                'keys' => $keyValues,
+            ]
+        );
+        $results = $this->database->read(
+            $this->tableName,
+            $keySet,
+            array_keys($this->attributeTypes)
+        );
+
+        foreach ($results->rows() as $row) {
+            $returnSet[] = $row;
+        }
+
+        return $returnSet;
     }
 
     /**
@@ -215,12 +233,9 @@ class SpannerTable
 
     /**
      * @param  array  $keys
-     * @param  bool  $is_consistent_read
-     * @param  array  $projectedFields
      * @return mixed|null
-     * @noinspection PhpUnusedParameterInspection
      */
-    public function get(array $keys, $is_consistent_read = false, $projectedFields = [])
+    public function get(array $keys)
     {
         if (empty($keys)) {
             throw new ODMException("keys can not be empty for get item action");

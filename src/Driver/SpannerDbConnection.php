@@ -35,15 +35,7 @@ class SpannerDbConnection extends AbstractDbConnection
         $retryDelay = 0,
         $maxDelay = 15000
     ) {
-        return $this->getSpannerTable()->batchGet(
-            $keys,
-            $isConsistentRead,
-            $concurrency,
-            $projectedFields,
-            $keyIsTyped,
-            $retryDelay,
-            $maxDelay
-        );
+        return $this->getSpannerTable()->batchGet($keys);
     }
 
     protected function getSpannerTable()
@@ -85,7 +77,7 @@ class SpannerDbConnection extends AbstractDbConnection
 
     public function get(array $keys, $is_consistent_read = false, $projectedFields = [])
     {
-        return $this->getSpannerTable()->get($keys, $is_consistent_read, $projectedFields);
+        return $this->getSpannerTable()->get($keys);
     }
 
     public function query(
