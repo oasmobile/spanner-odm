@@ -156,4 +156,31 @@ class ItemManagerTest extends TestCase
         //        }
     }
 
+    public function testQueryCountWithAttributeKey()
+    {
+        $usersNum = $this->itemManager->getRepository(User::class)
+            ->queryCount(
+                '#hometown = :hometown AND #wage > :wage',
+                [':hometown' => 'new york', ':wage' => 100],
+                'hometown-salary-index'
+            );
+
+        $this->assertIsNumeric($usersNum);
+    }
+
+    public function testQueryAndRunWithAttributeKey()
+    {
+        $this->markTestSkipped();
+
+        $this->itemManager->getRepository(User::class)
+            ->queryAndRun(
+                function (User $user) {
+                    echo $user->getId().PHP_EOL;
+                },
+                '#hometown = :hometown AND #wage > :wage',
+                [':hometown' => 'new york', ':wage' => 100],
+                'hometown-salary-index'
+            );
+    }
+
 }

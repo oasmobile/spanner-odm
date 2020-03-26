@@ -300,10 +300,18 @@ class SpannerTable
         return true;
     }
 
+    /**
+     * @param $keyConditions
+     * @param  array  $fieldsMapping
+     * @param  array  $paramsMapping
+     * @param  bool  $fetchCountValue
+     * @return array|int
+     */
     public function query(
         $keyConditions,
         array $fieldsMapping,
-        array $paramsMapping
+        array $paramsMapping,
+        $fetchCountValue = false
     ) {
         // Get query condition expression for sql
         $getConditionExpression = function ($keyConditions, $fieldsMapping) {
@@ -325,8 +333,16 @@ class SpannerTable
             return $paraVal;
         };
 
+        if ($fetchCountValue === true) {
+            $queryCol = "count(*)";
+        }
+        else {
+            $queryCol = "*";
+        }
+
         $querySql = sprintf(
-            "SELECT * FROM %s WHERE %s",
+            "SELECT %s FROM %s WHERE %s",
+            $queryCol,
             $this->tableName,
             $getConditionExpression($keyConditions, $fieldsMapping)
         );
@@ -338,21 +354,22 @@ class SpannerTable
             ]
         );
 
-        //        $results = $this->database->execute(
-        //            "SELECT * FROM User WHERE uuid = @myuuid",
-        //            [
-        //                'parameters' => [
-        //                    'myuuid' => $uuid,
-        //                ],
-        //            ]
-        //        );
-
-        $returnSet = [];
-        foreach ($results->rows() as $row) {
-            $returnSet[] = $row;
+        if ($fetchCountValue) {
+            if (!empty($row = $results->rows()->current())) {
+                return $row[0];
+            }
+            else {
+                return 0;
+            }
         }
+        else {
+            $returnSet = [];
+            foreach ($results->rows() as $row) {
+                $returnSet[] = $row;
+            }
 
-        return $returnSet;
+            return $returnSet;
+        }
     }
 
 }

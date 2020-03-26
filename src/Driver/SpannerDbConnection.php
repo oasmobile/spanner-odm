@@ -106,7 +106,21 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        //return $this->getSpannerTable()->query($keyConditions,$fieldsMapping,$paramsMapping);
+        $resultSet = $this->getSpannerTable()->query($keyConditions, $fieldsMapping, $paramsMapping);
+        //
+        if (!empty($resultSet)) {
+            $stoppedByCallback = false;
+            foreach ($resultSet as $item) {
+                if ($stoppedByCallback === true) {
+                    return;
+                }
+
+                $ret = call_user_func($callback, $item);
+                if ($ret === false) {
+                    $stoppedByCallback = true;
+                }
+            }
+        }
     }
 
     public function queryCount(
@@ -118,7 +132,7 @@ class SpannerDbConnection extends AbstractDbConnection
         $isConsistentRead = false,
         $isAscendingOrder = true
     ) {
-        // TODO: Implement queryCount() method.
+        return $this->getSpannerTable()->query($keyConditions, $fieldsMapping, $paramsMapping, true);
     }
 
     public function multiQueryAndRun(
