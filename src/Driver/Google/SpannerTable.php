@@ -304,7 +304,7 @@ class SpannerTable
      * @param $keyConditions
      * @param  array  $fieldsMapping
      * @param  array  $paramsMapping
-     * @param  bool  $fetchCountValue
+     * @param  bool  $countOnly
      * @param  int  $evaluationLimit
      * @return array|int
      */
@@ -312,7 +312,7 @@ class SpannerTable
         $keyConditions,
         array $fieldsMapping,
         array $paramsMapping,
-        $fetchCountValue = false,
+        $countOnly = false,
         $evaluationLimit = 0
     ) {
         // Get query condition expression for sql
@@ -339,14 +339,14 @@ class SpannerTable
             return $paraVal;
         };
 
-        if ($fetchCountValue === true) {
+        if ($countOnly === true) {
             $queryCol = "count(*)";
         }
         else {
             $queryCol = "*";
         }
 
-        if ($fetchCountValue === false && $evaluationLimit > 0) {
+        if ($countOnly === false && $evaluationLimit > 0) {
             $queryResultLimit = "limit {$evaluationLimit}";
         }
         else {
@@ -368,7 +368,7 @@ class SpannerTable
             ]
         );
 
-        if ($fetchCountValue) {
+        if ($countOnly) {
             if (!empty($row = $results->rows()->current())) {
                 return $row[0];
             }
