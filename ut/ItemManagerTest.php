@@ -235,9 +235,11 @@ class ItemManagerTest extends TestCase
             "NY".$base,
             "#age > :age",
             [":age" => 48],
-            "home-age-gsi"
+            "home-age-gsi",
+            "",
+            3
         );
-        $this->assertEquals(4, count($result));
+        $this->assertEquals(3, count($result));
 
         // remove all inserted users
 //        $count = $this->itemManager->getRepository(User::class)->scanCount(
