@@ -92,7 +92,13 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        return $this->getSpannerTable()->query($keyConditions, $fieldsMapping, $paramsMapping);
+        return $this->getSpannerTable()->query(
+            $keyConditions,
+            $fieldsMapping,
+            $paramsMapping,
+            false,
+            $evaluationLimit
+        );
     }
 
     public function queryAndRun(
@@ -150,7 +156,28 @@ class SpannerDbConnection extends AbstractDbConnection
         $concurrency = 10,
         $projectedFields = []
     ) {
-        // TODO: Implement multiQueryAndRun() method.
+        $resultSet = $this->getSpannerTable()->multiQuery(
+            $hashKeyName,
+            $hashKeyValues,
+            $rangeKeyConditions,
+            $fieldsMapping,
+            $paramsMapping,
+            $evaluationLimit
+        );
+        //
+        if (!empty($resultSet)) {
+            $stoppedByCallback = false;
+            foreach ($resultSet as $item) {
+                if ($stoppedByCallback === true) {
+                    return;
+                }
+
+                $ret = call_user_func($callback, $item);
+                if ($ret === false) {
+                    $stoppedByCallback = true;
+                }
+            }
+        }
     }
 
     public function scan(

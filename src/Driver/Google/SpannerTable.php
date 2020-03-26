@@ -305,13 +305,15 @@ class SpannerTable
      * @param  array  $fieldsMapping
      * @param  array  $paramsMapping
      * @param  bool  $fetchCountValue
+     * @param  int  $evaluationLimit
      * @return array|int
      */
     public function query(
         $keyConditions,
         array $fieldsMapping,
         array $paramsMapping,
-        $fetchCountValue = false
+        $fetchCountValue = false,
+        $evaluationLimit = 0
     ) {
         // Get query condition expression for sql
         $getConditionExpression = function ($keyConditions, $fieldsMapping) {
@@ -340,11 +342,19 @@ class SpannerTable
             $queryCol = "*";
         }
 
+        if ($fetchCountValue === false && $evaluationLimit > 0) {
+            $queryResultLimit = "limit {$evaluationLimit}";
+        }
+        else {
+            $queryResultLimit = '';
+        }
+
         $querySql = sprintf(
-            "SELECT %s FROM %s WHERE %s",
+            "SELECT %s FROM %s WHERE %s %s",
             $queryCol,
             $this->tableName,
-            $getConditionExpression($keyConditions, $fieldsMapping)
+            $getConditionExpression($keyConditions, $fieldsMapping),
+            $queryResultLimit
         );
 
         $results = $this->database->execute(
@@ -370,6 +380,105 @@ class SpannerTable
 
             return $returnSet;
         }
+    }
+
+    /**
+     * @param  string  $hashKeyName
+     * @param  array  $hashKeyValues
+     * @param  string  $rangeKeyConditions
+     * @param  array  $fieldsMapping
+     * @param  array  $paramsMapping
+     * @param  int  $evaluationLimit
+     * @return array
+     */
+    public function multiQuery(
+        $hashKeyName,
+        array $hashKeyValues,
+        $rangeKeyConditions,
+        array $fieldsMapping,
+        array $paramsMapping,
+        $evaluationLimit = 0
+    ) {
+        // Get query condition expression for sql
+        $getConditionExpression = function ($keyConditions, $fieldsMapping) {
+            $replaceSearch    = array_keys($fieldsMapping);
+            $replaceReplace   = array_values($fieldsMapping);
+            $replaceSearch[]  = ':';
+            $replaceReplace[] = '@';
+
+            return str_replace($replaceSearch, $replaceReplace, $keyConditions);
+        };
+
+        // Get hash key condition
+        $getHashKeyConditionExpression = function ($hashKeyName, array $hashKeyValues) {
+            $ceStr = '';
+            if (empty($hashKeyValues)) {
+                return $ceStr;
+            }
+
+            foreach ($hashKeyValues as $value) {
+                $ceStr .= "'{$value}',";
+            }
+
+            return sprintf(
+                "%s in (%s)",
+                $hashKeyName,
+                rtrim($ceStr,',')
+            );
+        };
+
+        // Get query condition value
+        $getParameterValues = function ($paramsMapping) {
+            $paraVal = [];
+            foreach ($paramsMapping as $k => $v) {
+                $paraVal[ltrim($k, ':')] = $v;
+            }
+
+            return $paraVal;
+        };
+
+
+        // get query condition expression
+        $queryExpression         = '1=1';
+        $hasKeyQueryExpression   = $getHashKeyConditionExpression($hashKeyName, $hashKeyValues);
+        $rangeKeyQueryExpression = $getConditionExpression($rangeKeyConditions, $fieldsMapping);
+
+        if (!empty($hasKeyQueryExpression)) {
+            $queryExpression .= " AND {$hasKeyQueryExpression} ";
+        }
+
+        if (!empty($rangeKeyQueryExpression)) {
+            $queryExpression .= " AND {$rangeKeyQueryExpression} ";
+        }
+
+        // query limit
+        if ($evaluationLimit > 0) {
+            $queryResultLimit = "limit {$evaluationLimit}";
+        }
+        else {
+            $queryResultLimit = '';
+        }
+
+        $querySql = sprintf(
+            "SELECT * FROM %s WHERE %s %s",
+            $this->tableName,
+            $queryExpression,
+            $queryResultLimit
+        );
+
+        $results = $this->database->execute(
+            $querySql,
+            [
+                'parameters' => $getParameterValues($paramsMapping),
+            ]
+        );
+
+        $returnSet = [];
+        foreach ($results->rows() as $row) {
+            $returnSet[] = $row;
+        }
+
+        return $returnSet;
     }
 
 }

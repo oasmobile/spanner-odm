@@ -183,4 +183,92 @@ class ItemManagerTest extends TestCase
             );
     }
 
+    public function testQueryAndScan()
+    {
+        $base = mt_rand(100, PHP_INT_MAX);
+
+        $users = [];
+        for ($i = 0; $i < 10; ++$i) {
+            $id   = $base + $i;
+            $user = new User();
+            $user->setId($id);
+            $user->setName('Batch #'.($i + 1));
+            $user->setHometown(((($i % 2) == 0) ? 'LA' : 'NY').$base);
+            $user->setAge(46 + $i); // 46 to 55
+            $user->setWage(12345);
+            $users[] = $user;
+            $this->itemManager->persist($user);
+        }
+
+        $this->itemManager->flush();
+        $this->itemManager->clear();
+
+        $count = $this->itemManager->getRepository(User::class)->queryCount(
+            '#hometown = :hometown AND #age > :age',
+            [':hometown' => 'NY'.$base, ':age' => 45],
+            'hometown-age-index'
+        );
+        $this->assertEquals(5, $count);
+
+        $result = $this->itemManager->getRepository(User::class)->queryAll(
+            '#hometown = :hometown AND #age > :age',
+            [':hometown' => 'NY'.$base, ':age' => 45],
+            'hometown-age-index'
+        );
+        $this->assertEquals(5, count($result));
+
+        $count = $this->itemManager->getRepository(User::class)->multiQueryCount(
+            "hometownPartition",
+            "NY".$base,
+            "#age > :age",
+            [":age" => 48],
+            "home-age-gsi"
+        );
+        $this->assertEquals(4, $count);
+
+        $result = [];
+        $this->itemManager->getRepository(User::class)->multiQueryAndRun(
+            function ($item) use (&$result) {
+                $result[] = $item;
+            },
+            "hometownPartition",
+            "NY".$base,
+            "#age > :age",
+            [":age" => 48],
+            "home-age-gsi"
+        );
+        $this->assertEquals(4, count($result));
+
+        // remove all inserted users
+//        $count = $this->itemManager->getRepository(User::class)->scanCount(
+//            '#wage = :wage AND #id BETWEEN :idmin AND :idmax ',
+//            [
+//                ':wage'  => 12345,
+//                ':idmin' => $base,
+//                ':idmax' => $base + 10,
+//            ]
+//        );
+//        $this->assertEquals(10, $count);
+//        $count = 0;
+//        $this->itemManager->getRepository(User::class)->scanAndRun(
+//            function (User $user) use (&$count) {
+//                $count++;
+//                $this->itemManager->remove($user);
+//            },
+//            '#wage = :wage AND #id BETWEEN :idmin AND :idmax ',
+//            [
+//                ':wage'  => 12345,
+//                ':idmin' => $base,
+//                ':idmax' => $base + 10,
+//            ],
+//            DynamoDbIndex::PRIMARY_INDEX,
+//            false,
+//            true,
+//            5
+//        );
+//        $this->assertEquals(10, $count);
+//
+//        $this->itemManager->flush();
+    }
+
 }
