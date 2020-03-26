@@ -191,7 +191,13 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        // TODO: Implement scan() method.
+        return $this->getSpannerTable()->query(
+            $filterExpression,
+            $fieldsMapping,
+            $paramsMapping,
+            false,
+            $evaluationLimit
+        );
     }
 
     public function scanAndRun(
@@ -204,7 +210,21 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        // TODO: Implement scanAndRun() method.
+        $resultSet = $this->getSpannerTable()->query($filterExpression, $fieldsMapping, $paramsMapping);
+        //
+        if (!empty($resultSet)) {
+            $stoppedByCallback = false;
+            foreach ($resultSet as $item) {
+                if ($stoppedByCallback === true) {
+                    return;
+                }
+
+                $ret = call_user_func($callback, $item);
+                if ($ret === false) {
+                    $stoppedByCallback = true;
+                }
+            }
+        }
     }
 
     public function parallelScanAndRun(
@@ -218,7 +238,21 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        // TODO: Implement parallelScanAndRun() method.
+        $resultSet = $this->getSpannerTable()->query($filterExpression, $fieldsMapping, $paramsMapping);
+        //
+        if (!empty($resultSet)) {
+            $stoppedByCallback = false;
+            foreach ($resultSet as $item) {
+                if ($stoppedByCallback === true) {
+                    return;
+                }
+
+                $ret = call_user_func($callback, $item);
+                if ($ret === false) {
+                    $stoppedByCallback = true;
+                }
+            }
+        }
     }
 
     public function scanCount(
@@ -229,7 +263,7 @@ class SpannerDbConnection extends AbstractDbConnection
         $isConsistentRead = false,
         $parallel = 10
     ) {
-        // TODO: Implement scanCount() method.
+        return $this->getSpannerTable()->query($filterExpression, $fieldsMapping, $paramsMapping, true);
     }
 
     /**

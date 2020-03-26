@@ -317,6 +317,10 @@ class SpannerTable
     ) {
         // Get query condition expression for sql
         $getConditionExpression = function ($keyConditions, $fieldsMapping) {
+            if (empty($keyConditions)) {
+                return '1=1';
+            }
+
             $replaceSearch    = array_keys($fieldsMapping);
             $replaceReplace   = array_values($fieldsMapping);
             $replaceSearch[]  = ':';
@@ -423,7 +427,7 @@ class SpannerTable
             return sprintf(
                 "%s in (%s)",
                 $hashKeyName,
-                rtrim($ceStr,',')
+                rtrim($ceStr, ',')
             );
         };
 

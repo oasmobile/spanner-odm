@@ -242,35 +242,35 @@ class ItemManagerTest extends TestCase
         $this->assertEquals(3, count($result));
 
         // remove all inserted users
-//        $count = $this->itemManager->getRepository(User::class)->scanCount(
-//            '#wage = :wage AND #id BETWEEN :idmin AND :idmax ',
-//            [
-//                ':wage'  => 12345,
-//                ':idmin' => $base,
-//                ':idmax' => $base + 10,
-//            ]
-//        );
-//        $this->assertEquals(10, $count);
-//        $count = 0;
-//        $this->itemManager->getRepository(User::class)->scanAndRun(
-//            function (User $user) use (&$count) {
-//                $count++;
-//                $this->itemManager->remove($user);
-//            },
-//            '#wage = :wage AND #id BETWEEN :idmin AND :idmax ',
-//            [
-//                ':wage'  => 12345,
-//                ':idmin' => $base,
-//                ':idmax' => $base + 10,
-//            ],
-//            DynamoDbIndex::PRIMARY_INDEX,
-//            false,
-//            true,
-//            5
-//        );
-//        $this->assertEquals(10, $count);
-//
-//        $this->itemManager->flush();
+        $count = $this->itemManager->getRepository(User::class)->scanCount(
+            '#wage = :wage AND #id BETWEEN :idmin AND :idmax ',
+            [
+                ':wage'  => 12345,
+                ':idmin' => $base,
+                ':idmax' => $base + 10,
+            ]
+        );
+        $this->assertEquals(10, $count);
+        $count = 0;
+        $this->itemManager->getRepository(User::class)->scanAndRun(
+            function (User $user) use (&$count) {
+                $count++;
+                $this->itemManager->remove($user);
+            },
+            '#wage = :wage AND #id BETWEEN :idmin AND :idmax ',
+            [
+                ':wage'  => 12345,
+                ':idmin' => $base,
+                ':idmax' => $base + 10,
+            ],
+            true,
+            false,
+            true,
+            5
+        );
+        $this->assertEquals(10, $count);
+
+        $this->itemManager->flush();
     }
 
 }
