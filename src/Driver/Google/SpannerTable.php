@@ -252,7 +252,7 @@ class SpannerTable
             array_keys($this->attributeTypes)
         );
 
-        foreach ($results->rows() as $row) {
+        if (!empty($row = $results->rows()->current())) {
             return $row;
         }
 
@@ -298,6 +298,61 @@ class SpannerTable
         $t->commit();
 
         return true;
+    }
+
+    public function query(
+        $keyConditions,
+        array $fieldsMapping,
+        array $paramsMapping
+    ) {
+        // Get query condition expression for sql
+        $getConditionExpression = function ($keyConditions, $fieldsMapping) {
+            $replaceSearch    = array_keys($fieldsMapping);
+            $replaceReplace   = array_values($fieldsMapping);
+            $replaceSearch[]  = ':';
+            $replaceReplace[] = '@';
+
+            return str_replace($replaceSearch, $replaceReplace, $keyConditions);
+        };
+
+        // Get query condition value
+        $getParameterValues = function ($paramsMapping) {
+            $paraVal = [];
+            foreach ($paramsMapping as $k => $v) {
+                $paraVal[ltrim($k, ':')] = $v;
+            }
+
+            return $paraVal;
+        };
+
+        $querySql = sprintf(
+            "SELECT * FROM %s WHERE %s",
+            $this->tableName,
+            $getConditionExpression($keyConditions, $fieldsMapping)
+        );
+
+        $results = $this->database->execute(
+            $querySql,
+            [
+                'parameters' => $getParameterValues($paramsMapping),
+            ]
+        );
+
+        //        $results = $this->database->execute(
+        //            "SELECT * FROM User WHERE uuid = @myuuid",
+        //            [
+        //                'parameters' => [
+        //                    'myuuid' => $uuid,
+        //                ],
+        //            ]
+        //        );
+
+        $returnSet = [];
+        foreach ($results->rows() as $row) {
+            $returnSet[] = $row;
+        }
+
+        return $returnSet;
     }
 
 }

@@ -92,7 +92,7 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        // TODO: Implement query() method.
+        return $this->getSpannerTable()->query($keyConditions, $fieldsMapping, $paramsMapping);
     }
 
     public function queryAndRun(
@@ -106,7 +106,7 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        // TODO: Implement queryAndRun() method.
+        //return $this->getSpannerTable()->query($keyConditions,$fieldsMapping,$paramsMapping);
     }
 
     public function queryCount(
