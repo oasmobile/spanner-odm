@@ -7,6 +7,7 @@ use Oasis\Mlib\ODM\Dynamodb\Exceptions\ODMException;
 use Oasis\Mlib\ODM\Dynamodb\ItemManager;
 use Oasis\Mlib\ODM\Spanner\Driver\SpannerDbConnection;
 use PHPUnit\Framework\TestCase;
+use SebastianBergmann\CodeCoverage\Report\PHP;
 
 class ItemManagerTest extends TestCase
 {
@@ -175,7 +176,13 @@ class ItemManagerTest extends TestCase
         $this->itemManager->getRepository(User::class)
             ->queryAndRun(
                 function (User $user) {
-                    echo $user->getId().PHP_EOL;
+                    echo PHP_EOL.sprintf(
+                            "id=%s, name=%s,age=%s,salary=%s",
+                            $user->getId(),
+                            $user->getName(),
+                            $user->getAge(),
+                            $user->getWage()
+                        ).PHP_EOL;
                 },
                 '#hometown = :hometown AND #wage > :wage',
                 [':hometown' => 'new york', ':wage' => 100],
