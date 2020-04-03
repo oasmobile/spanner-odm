@@ -25,6 +25,30 @@ class Column
     private $length = 0;
 
     /**
+     *
+     * contains type and length which designed for sql generation
+     *
+     * @var string
+     */
+    private $fullType = '';
+
+    /**
+     * @return string
+     */
+    public function getFullType()
+    {
+        return $this->fullType;
+    }
+
+    /**
+     * @param  string  $fullType
+     */
+    public function setFullType($fullType)
+    {
+        $this->fullType = $fullType;
+    }
+
+    /**
      * @return int
      */
     public function getLength()
@@ -88,6 +112,69 @@ class Column
             'type'   => $this->type,
             'length' => $this->length,
         ];
+    }
+
+    public function initWithObjectAttribute($attributeName, $attributeType)
+    {
+        $attMap = $this->getAttributeTypeMapping($attributeType);
+
+        $this->name     = $attributeName;
+        $this->type     = $attMap['T'];
+        $this->fullType = $attMap['F'];
+
+        return $this;
+    }
+
+    protected function getAttributeTypeMapping($attributeType)
+    {
+        $map = [
+            "string" =>
+                [
+                    "T" => "STRING",
+                    "F" => "STRING(MAX)",
+                ],
+            "number" =>
+                [
+                    "T" => "INT64",
+                    "F" => "INT64",
+                ],
+            "binary" =>
+                [
+                    "T" => "BYTES",
+                    "F" => "BYTES(MAX)",
+                ],
+            "bool"   =>
+                [
+                    "T" => "BOOL",
+                    "F" => "BOOL",
+                ],
+            "null"   =>
+                [
+                    "T" => "STRING",
+                    "F" => "STRING(MAX)",
+                ],
+            "list"   =>
+                [
+                    "T" => "STRING",
+                    "F" => "STRING(MAX)",
+                ],
+            "map"    =>
+                [
+                    "T" => "STRING",
+                    "F" => "STRING(MAX)",
+                ],
+
+        ];
+
+        if (isset($map[$attributeType])) {
+            return $map[$attributeType];
+        }
+        else {
+            return [
+                "T" => "STRING",
+                "F" => "STRING(MAX)",
+            ];
+        }
     }
 
 }
