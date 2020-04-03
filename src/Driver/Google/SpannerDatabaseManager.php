@@ -17,6 +17,7 @@ use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\SpannerClient;
 use Oasis\Mlib\ODM\Dynamodb\Exceptions\ODMException;
 use Oasis\Mlib\ODM\Spanner\Schema\Structures\Column;
+use Oasis\Mlib\ODM\Spanner\Schema\Structures\Index;
 use Oasis\Mlib\ODM\Spanner\Schema\Structures\Table;
 
 /**
@@ -79,22 +80,42 @@ class SpannerDatabaseManager
         return str_replace('-', '_', $tableName);
     }
 
+    /**
+     * @return array
+     */
     public function listTables()
     {
-        $ddlTexts = $this->database->ddl();
+        $ddlTexts  = $this->database->ddl();
+        $tableList = [];
 
+        // Extract Tables
         foreach ($ddlTexts as $ddlText) {
             if (strpos($ddlText, 'CREATE TABLE') !== false) {
-                $table = $this->getTableDefinitionFromSql($ddlText);
-                print_r($table->__toArray());
+                $table                        = $this->getTableDefinitionFromSql($ddlText);
+                $tableList[$table->getName()] = $table;
             }
         }
+
+        // Extract Indexs
+        foreach ($ddlTexts as $ddlText) {
+            if (strpos($ddlText, 'CREATE INDEX') !== false) {
+                $index = $this->getIndexDefinitionFromSql($ddlText);
+                /** @var Table $table */
+                $table = $tableList[$index->getTableName()];
+                if (empty($table)) {
+                    throw new ODMException("Table not exist: {$index->getTableName()}");
+                }
+                $table->appendIndex($index);
+            }
+        }
+
+        return $tableList;
     }
 
     public function testMatch()
     {
-        $ddlTexts = "";//"CREATE TABLE odm_ut_users (\n  uid INT64 NOT NULL,\n  age INT64,\n  salary INT64,\n  ts INT64,\n  alias STRING(256) NOT NULL,\n  dummy STRING(256),\n  hometown STRING(256),\n  hometownPartition STRING(256),\n  name STRING(256),\n) PRIMARY KEY(uid)";
-        $pattern1 = '#^CREATE\sTABLE\s(?P<table>\w+)\s\((?P<col>(\n\s+.*\,)+).*$#s';
+        $ddlTexts = "CREATE INDEX keyUsername ON User(username)";
+        $pattern1 = '#^CREATE\sINDEX\s(?P<index>\w+)\s+(ON)\s+(?P<table>\w+)\(#';
         preg_match_all(
             $pattern1,
             $ddlTexts,
@@ -105,24 +126,7 @@ class SpannerDatabaseManager
             echo "not matched".PHP_EOL;
         }
         else {
-            // table name
-            echo "table name: ".$matches['table'][0].PHP_EOL;
-
-            // col
-            $colStr     = $matches['col'][0];
-            $patternCol = "/(?P<name>\w+)\s+(?P<type>\w+)\((?P<len>\d+)\)/";
-            preg_match_all($patternCol, $colStr, $matchesCol);
-
-            print_r($matchesCol['name']);
-            print_r($matchesCol['type']);
-            print_r($matchesCol['len']);
-
-
-            $patternIntCol = "/(?P<name>\w+)\s+(INT64)/";
-            preg_match_all($patternIntCol, $colStr, $matchesIntCol);
-            print_r($matchesIntCol);
-
-            echo PHP_EOL.$colStr.PHP_EOL;
+            print_r($matches);
         }
     }
 
@@ -144,8 +148,8 @@ class SpannerDatabaseManager
         }
         else {
             // extract table name
-            $tableDDL = new Table();
-            $tableDDL->setName($matches['table'][0]);
+            $table = new Table();
+            $table->setName($matches['table'][0]);
 
             // extract columns
             $colStr     = $matches['col'][0];
@@ -156,7 +160,7 @@ class SpannerDatabaseManager
 
             if ($colCount > 0 && $colCount == count($matchesCol['type']) && $colCount == count($matchesCol['len'])) {
                 for ($i = 0; $i < $colCount; $i++) {
-                    $tableDDL->appendColumn(
+                    $table->appendColumn(
                         (new Column())
                             ->setName($matchesCol['name'][$i])
                             ->setType($matchesCol['type'][$i])
@@ -174,7 +178,7 @@ class SpannerDatabaseManager
 
             if (!empty($matchesIntCol) && !empty($matchesIntCol['name'])) {
                 foreach ($matchesIntCol['name'] as $item) {
-                    $tableDDL->appendColumn(
+                    $table->appendColumn(
                         (new Column())
                             ->setName($item)
                             ->setType('INT64')
@@ -189,7 +193,7 @@ class SpannerDatabaseManager
 
             if (!empty($matchesBoolCol) && !empty($matchesBoolCol['name'])) {
                 foreach ($matchesBoolCol['name'] as $item) {
-                    $tableDDL->appendColumn(
+                    $table->appendColumn(
                         (new Column())
                             ->setName($item)
                             ->setType('BOOL')
@@ -204,7 +208,7 @@ class SpannerDatabaseManager
 
             if (!empty($matchesDateCol) && !empty($matchesDateCol['name'])) {
                 foreach ($matchesDateCol['name'] as $item) {
-                    $tableDDL->appendColumn(
+                    $table->appendColumn(
                         (new Column())
                             ->setName($item)
                             ->setType('DATE')
@@ -219,7 +223,7 @@ class SpannerDatabaseManager
 
             if (!empty($matchesTimestampCol) && !empty($matchesTimestampCol['name'])) {
                 foreach ($matchesTimestampCol['name'] as $item) {
-                    $tableDDL->appendColumn(
+                    $table->appendColumn(
                         (new Column())
                             ->setName($item)
                             ->setType('TIMESTAMP')
@@ -228,8 +232,33 @@ class SpannerDatabaseManager
                 }
             }
 
-            return $tableDDL;
+            return $table;
         }
+    }
+
+    /**
+     * @param $createIndexSqlText
+     * @return Index
+     */
+    public function getIndexDefinitionFromSql($createIndexSqlText)
+    {
+        $pattern = '#^CREATE\sINDEX\s(?P<index>\w+)\s+(ON)\s+(?P<table>\w+)\(#';
+        preg_match_all(
+            $pattern,
+            $createIndexSqlText,
+            $matches
+        );
+
+        if (empty($matches)) {
+            throw new ODMException("No matches with sql: $createIndexSqlText");
+        }
+        else {
+            $index = new Index();
+            $index->setName($matches['index'][0]);
+            $index->setTableName($matches['table'][0]);
+        }
+
+        return $index;
     }
 
 

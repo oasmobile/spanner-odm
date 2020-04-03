@@ -9,10 +9,34 @@ namespace Oasis\Mlib\ODM\Spanner\Schema\Structures;
  */
 class Index
 {
-    private $name;
+    /**
+     * @var string
+     */
+    private $name = '';
 
     /**
-     * @return mixed
+     * @var string
+     */
+    private $tableName = '';
+
+    /**
+     * @return string
+     */
+    public function getTableName()
+    {
+        return $this->tableName;
+    }
+
+    /**
+     * @param  string  $tableName
+     */
+    public function setTableName($tableName)
+    {
+        $this->tableName = $tableName;
+    }
+
+    /**
+     * @return string
      */
     public function getName()
     {
@@ -20,7 +44,7 @@ class Index
     }
 
     /**
-     * @param  mixed  $name
+     * @param  string  $name
      * @return Index
      */
     public function setName($name)
