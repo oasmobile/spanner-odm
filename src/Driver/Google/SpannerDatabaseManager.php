@@ -15,6 +15,9 @@ use Google\Cloud\Core\Exception\GoogleException as GoogleExceptionAlias;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\SpannerClient;
+use Oasis\Mlib\ODM\Dynamodb\Exceptions\ODMException;
+use Oasis\Mlib\ODM\Spanner\Schema\Structures\Column;
+use Oasis\Mlib\ODM\Spanner\Schema\Structures\Table;
 
 /**
  * Class SpannerDatabaseManager
@@ -78,22 +81,19 @@ class SpannerDatabaseManager
 
     public function listTables()
     {
-        $ddlTexts  = $this->database->ddl();
+        $ddlTexts = $this->database->ddl();
 
         foreach ($ddlTexts as $ddlText) {
-
-            if (strpos($ddlText,'CREATE TABLE') !== false) {
-                $this->getTableDefinitionFromSql($ddlText);
+            if (strpos($ddlText, 'CREATE TABLE') !== false) {
+                $table = $this->getTableDefinitionFromSql($ddlText);
+                print_r($table->__toArray());
             }
         }
     }
 
     public function testMatch()
     {
-        $ddlTexts = "CREATE TABLE odm_ut_users (\n     address STRING(256),\n  avatar BYTES(104),\n) PRIMARY KEY(uuid)";
-        $ddlTexts = "CREATE TABLE odm_ut_users (\n  uid INT64 NOT NULL,\n  age INT64,\n  salary INT64,\n  ts INT64,\n  alias STRING(256) NOT NULL,\n  dummy STRING(256),\n  hometown STRING(256),\n  hometownPartition STRING(256),\n  name STRING(256),\n) PRIMARY KEY(uid)";
-
-        $pattern1 = '#^CREATE\sTABLE\s(?P<table>\w+)\s\((?P<col>(\n\s+\w+\s+\w+\(\d+\)\,)+).*$#s';
+        $ddlTexts = "";//"CREATE TABLE odm_ut_users (\n  uid INT64 NOT NULL,\n  age INT64,\n  salary INT64,\n  ts INT64,\n  alias STRING(256) NOT NULL,\n  dummy STRING(256),\n  hometown STRING(256),\n  hometownPartition STRING(256),\n  name STRING(256),\n) PRIMARY KEY(uid)";
         $pattern1 = '#^CREATE\sTABLE\s(?P<table>\w+)\s\((?P<col>(\n\s+.*\,)+).*$#s';
         preg_match_all(
             $pattern1,
@@ -122,13 +122,17 @@ class SpannerDatabaseManager
             preg_match_all($patternIntCol, $colStr, $matchesIntCol);
             print_r($matchesIntCol);
 
-            echo PHP_EOL .$colStr . PHP_EOL;
+            echo PHP_EOL.$colStr.PHP_EOL;
         }
     }
 
+    /**
+     * @param $createTableSqlText
+     * @return Table
+     */
     public function getTableDefinitionFromSql($createTableSqlText)
     {
-        $patternTable = '#^CREATE\sTABLE\s(?P<table>\w+)\s\((?P<col>(\n\s+.*\,)+).*$#s';;
+        $patternTable = '#^CREATE\sTABLE\s(?P<table>\w+)\s\((?P<col>(\n\s+.*\,)+).*$#s';
         preg_match_all(
             $patternTable,
             $createTableSqlText,
@@ -136,22 +140,50 @@ class SpannerDatabaseManager
         );
 
         if (empty($matches)) {
-            echo "not matched".PHP_EOL;
+            throw new ODMException("No matches with sql: $createTableSqlText");
         }
         else {
-            $tableStr   = $matches['table'][0];
+            // extract table name
+            $tableDDL = new Table();
+            $tableDDL->setName($matches['table'][0]);
+
+            // extract columns
             $colStr     = $matches['col'][0];
             $patternCol = "/(?P<name>\w+)\s+(?P<type>\w+)\((?P<len>\d+)\)/";
             preg_match_all($patternCol, $colStr, $matchesCol);
 
-            echo "table name: ".$tableStr.PHP_EOL;
-            print_r($matchesCol['name']);
-            print_r($matchesCol['type']);
-            print_r($matchesCol['len']);
+            $colCount = count($matchesCol['name']);
 
+            if ($colCount > 0 && $colCount == count($matchesCol['type']) && $colCount == count($matchesCol['len'])) {
+                for ($i = 0; $i < $colCount; $i++) {
+                    $tableDDL->appendColumn(
+                        (new Column())
+                            ->setName($matchesCol['name'][$i])
+                            ->setType($matchesCol['type'][$i])
+                            ->setLength($matchesCol['len'][$i])
+                    );
+                }
+            }
+            else {
+                throw new ODMException("Bad column define got: {$colStr}");
+            }
+
+            // extract INT64 type columns
             $patternIntCol = "/(?P<name>\w+)\s+(INT64)/";
             preg_match_all($patternIntCol, $colStr, $matchesIntCol);
-            print_r($matchesIntCol);
+
+            if (!empty($matchesIntCol) && !empty($matchesIntCol['name'])) {
+                foreach ($matchesIntCol['name'] as $item) {
+                    $tableDDL->appendColumn(
+                        (new Column())
+                            ->setName($item)
+                            ->setType('INT64')
+                            ->setLength(64)
+                    );
+                }
+            }
+
+            return $tableDDL;
         }
     }
 
