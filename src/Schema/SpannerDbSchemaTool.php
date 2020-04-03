@@ -11,6 +11,7 @@ namespace Oasis\Mlib\ODM\Spanner\Schema;
 
 
 use Oasis\Mlib\ODM\Dynamodb\DBAL\Schema\AbstractSchemaTool;
+use Oasis\Mlib\ODM\Spanner\Driver\Google\SpannerDatabaseManager;
 
 /**
  * Class SpannerDbSchemaTool
@@ -18,19 +19,53 @@ use Oasis\Mlib\ODM\Dynamodb\DBAL\Schema\AbstractSchemaTool;
  */
 class SpannerDbSchemaTool extends AbstractSchemaTool
 {
+    /**
+     * @var array
+     */
+    protected $dbConfig;
+
+    /**
+     * @var SpannerDatabaseManager
+     */
+    private $spannerManager;
+
+    /**
+     * @param  array  $dbConfig
+     * @return SpannerDbSchemaTool
+     */
+    public function setDbConfig($dbConfig)
+    {
+        $this->dbConfig = $dbConfig;
+
+        return $this;
+    }
 
     public function createSchema($skipExisting, $dryRun)
     {
-        // TODO: Implement createSchema() method.
+        $this->getSpannerManager()->listTables();
+//        $this->outputWrite("spanner createSchema");
     }
 
     public function updateSchema($isDryRun)
     {
-        // TODO: Implement updateSchema() method.
+        $this->getSpannerManager()->testMatch();
     }
 
     public function dropSchema()
     {
-        // TODO: Implement dropSchema() method.
+    }
+
+    protected function getSpannerManager()
+    {
+        if ($this->spannerManager !== null) {
+            return $this->spannerManager;
+        }
+
+
+        $this->spannerManager = new SpannerDatabaseManager(
+            $this->dbConfig
+        );
+
+        return $this->spannerManager;
     }
 }

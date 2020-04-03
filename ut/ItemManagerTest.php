@@ -7,7 +7,6 @@ use Oasis\Mlib\ODM\Dynamodb\Exceptions\ODMException;
 use Oasis\Mlib\ODM\Dynamodb\ItemManager;
 use Oasis\Mlib\ODM\Spanner\Driver\SpannerDbConnection;
 use PHPUnit\Framework\TestCase;
-use SebastianBergmann\CodeCoverage\Report\PHP;
 
 class ItemManagerTest extends TestCase
 {

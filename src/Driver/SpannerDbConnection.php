@@ -271,6 +271,6 @@ class SpannerDbConnection extends AbstractDbConnection
      */
     public function getSchemaTool(ItemManager $im, $classReflections, callable $outputFunction = null)
     {
-        return new SpannerDbSchemaTool($im, $classReflections, $outputFunction);
+        return (new SpannerDbSchemaTool($im, $classReflections, $outputFunction))->setDbConfig($this->dbConfig);
     }
 }
