@@ -183,6 +183,51 @@ class SpannerDatabaseManager
                 }
             }
 
+            // extract BOOL type columns
+            $patternBoolCol = "/(?P<name>\w+)\s+(BOOL)/";
+            preg_match_all($patternBoolCol, $colStr, $matchesBoolCol);
+
+            if (!empty($matchesBoolCol) && !empty($matchesBoolCol['name'])) {
+                foreach ($matchesBoolCol['name'] as $item) {
+                    $tableDDL->appendColumn(
+                        (new Column())
+                            ->setName($item)
+                            ->setType('BOOL')
+                            ->setLength(1)
+                    );
+                }
+            }
+
+            // extract DATE type columns
+            $patternDateCol = "/(?P<name>\w+)\s+(DATE)/";
+            preg_match_all($patternDateCol, $colStr, $matchesDateCol);
+
+            if (!empty($matchesDateCol) && !empty($matchesDateCol['name'])) {
+                foreach ($matchesDateCol['name'] as $item) {
+                    $tableDDL->appendColumn(
+                        (new Column())
+                            ->setName($item)
+                            ->setType('DATE')
+                            ->setLength(1)
+                    );
+                }
+            }
+
+            // extract TIMESTAMP type columns
+            $patternTimestampCol = "/(?P<name>\w+)\s+(TIMESTAMP)/";
+            preg_match_all($patternTimestampCol, $colStr, $matchesTimestampCol);
+
+            if (!empty($matchesTimestampCol) && !empty($matchesTimestampCol['name'])) {
+                foreach ($matchesTimestampCol['name'] as $item) {
+                    $tableDDL->appendColumn(
+                        (new Column())
+                            ->setName($item)
+                            ->setType('TIMESTAMP')
+                            ->setLength(1)
+                    );
+                }
+            }
+
             return $tableDDL;
         }
     }
