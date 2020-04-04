@@ -20,6 +20,27 @@ class Index
     private $tableName = '';
 
     /**
+     * @var array
+     */
+    private $columns = [];
+
+    /**
+     * @return array
+     */
+    public function getColumns()
+    {
+        return $this->columns;
+    }
+
+    /**
+     * @param  array  $columns
+     */
+    public function setColumns($columns)
+    {
+        $this->columns = $columns;
+    }
+
+    /**
      * @return string
      */
     public function getTableName()

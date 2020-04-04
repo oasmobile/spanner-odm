@@ -155,13 +155,13 @@ class Column
                 ],
             "list"   =>
                 [
-                    "T" => "STRING",
-                    "F" => "STRING(MAX)",
+                    "T" => "ARRAY",
+                    "F" => "ARRAY<STRING(MAX)>",
                 ],
             "map"    =>
                 [
-                    "T" => "STRING",
-                    "F" => "STRING(MAX)",
+                    "T" => "ARRAY",
+                    "F" => "ARRAY<STRING(MAX)>",
                 ],
 
         ];

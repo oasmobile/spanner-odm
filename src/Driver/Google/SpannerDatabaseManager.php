@@ -232,6 +232,21 @@ class SpannerDatabaseManager
                 }
             }
 
+            // extract ARRAY type columns
+            $patternArrayCol = "/(?P<name>\w+)\s+(ARRAY)/";
+            preg_match_all($patternArrayCol, $colStr, $matchesArrayCol);
+
+            if (!empty($matchesArrayCol) && !empty($matchesArrayCol['name'])) {
+                foreach ($matchesArrayCol['name'] as $item) {
+                    $table->appendColumn(
+                        (new Column())
+                            ->setName($item)
+                            ->setType('ARRAY')
+                            ->setLength(1)
+                    );
+                }
+            }
+
             return $table;
         }
     }

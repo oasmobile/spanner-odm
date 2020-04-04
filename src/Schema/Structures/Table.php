@@ -25,6 +25,27 @@ class Table
     private $indexs = [];
 
     /**
+     * @var array
+     */
+    private $primaryKeyColumns = [];
+
+    /**
+     * @return array
+     */
+    public function getPrimaryKeyColumns()
+    {
+        return $this->primaryKeyColumns;
+    }
+
+    /**
+     * @param  array  $primaryKeyColumns
+     */
+    public function setPrimaryKeyColumns($primaryKeyColumns)
+    {
+        $this->primaryKeyColumns = $primaryKeyColumns;
+    }
+
+    /**
      * @return Index[]
      */
     public function getIndexs()
