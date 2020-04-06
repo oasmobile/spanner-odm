@@ -34,10 +34,13 @@ class Index
 
     /**
      * @param  array  $columns
+     * @return Index
      */
     public function setColumns($columns)
     {
         $this->columns = $columns;
+
+        return $this;
     }
 
     /**
@@ -61,6 +64,15 @@ class Index
      */
     public function getName()
     {
+        if (empty($this->name) && !empty($this->columns)) {
+            $idxName = '';
+            foreach ($this->columns as $col) {
+                $idxName .= strtolower($col) . '_';
+            }
+
+            return rtrim($idxName, '_');
+        }
+
         return $this->name;
     }
 
@@ -78,7 +90,8 @@ class Index
     public function __toArray()
     {
         return [
-            'name' => $this->name,
+            'name'    => $this->getName(),
+            'columns' => $this->columns,
         ];
     }
 

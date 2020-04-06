@@ -108,9 +108,10 @@ class Column
     public function __toArray()
     {
         return [
-            'name'   => $this->name,
-            'type'   => $this->type,
-            'length' => $this->length,
+            'name'     => $this->name,
+            'type'     => $this->type,
+            'fullType' => $this->fullType,
+            'length'   => $this->length,
         ];
     }
 

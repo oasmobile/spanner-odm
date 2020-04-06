@@ -15,6 +15,7 @@ use Oasis\Mlib\ODM\Dynamodb\ItemReflection;
 use Oasis\Mlib\ODM\Spanner\Driver\Google\SpannerDatabaseManager;
 use Oasis\Mlib\ODM\Spanner\Driver\Google\SpannerTable;
 use Oasis\Mlib\ODM\Spanner\Schema\Structures\Column;
+use Oasis\Mlib\ODM\Spanner\Schema\Structures\Index;
 use Oasis\Mlib\ODM\Spanner\Schema\Structures\Table;
 
 /**
@@ -92,13 +93,14 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
      */
     protected function updateTableSchemas($skipExisting, $dryRun)
     {
-        $tablesFromDDL = $this->getSpannerManager()->listTables();
+//        $tablesFromDDL  = $this->getSpannerManager()->listTables();
+        $tableFromClass = $this->getTableInfoFromClasses();
 
         /**
          * @var string $name
          * @var Table $table
          */
-        foreach ($tablesFromDDL as $name => $table) {
+        foreach ($tableFromClass as $name => $table) {
             echo PHP_EOL.$name.PHP_EOL;
             print_r($table->__toArray());
         }
@@ -131,11 +133,33 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
             // set columns
             foreach ($reflection->getAttributeTypes() as $name => $type) {
                 $table->appendColumn(
-                    (new Column())->initWithObjectAttribute($name,$type)
+                    (new Column())->initWithObjectAttribute($name, $type)
                 );
             }
-            // set index
-            // todo
+            // set primary index
+            $primaryKeyColumns = [
+                $reflection->getFieldNameByPropertyName($reflection->getItemDefinition()->primaryIndex->hash),
+            ];
+
+            if (!empty($reflection->getItemDefinition()->primaryIndex->range)) {
+                $primaryKeyColumns[] = $reflection->getFieldNameByPropertyName(
+                    $reflection->getItemDefinition()->primaryIndex->hash
+                );
+            }
+
+            $table->setPrimaryKeyColumns($primaryKeyColumns);
+
+            // set other index
+            foreach ($reflection->getItemDefinition()->globalSecondaryIndices as $globalSecondaryIndex) {
+                $indexColumn   = [];
+                $indexColumn[] = $reflection->getFieldNameByPropertyName($globalSecondaryIndex->hash);
+                if (!empty($globalSecondaryIndex->range)) {
+                    $indexColumn[] = $reflection->getFieldNameByPropertyName($globalSecondaryIndex->range);
+                }
+                $table->appendIndex(
+                    (new Index())->setColumns($indexColumn)
+                );
+            }
 
             // append to list
             $tableList[$table->getName()] = $table;

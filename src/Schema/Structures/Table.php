@@ -132,7 +132,8 @@ class Table
     public function __toArray()
     {
         $table = [
-            'name' => $this->name,
+            'name'        => $this->name,
+            'primaryKeys' => $this->primaryKeyColumns,
         ];
 
         foreach ($this->columns as $column) {
