@@ -7,7 +7,7 @@ namespace Oasis\Mlib\ODM\Spanner\Schema\Structures;
  * Class Index
  * @package Oasis\Mlib\ODM\Spanner\Schema\Structures
  */
-class Index
+class Index extends ComparableItem
 {
     /**
      * @var string
@@ -59,6 +59,15 @@ class Index
         $this->tableName = $tableName;
     }
 
+    public function __toArray()
+    {
+        return [
+            'name'    => $this->getName(),
+            'table'   => $this->tableName,
+            'columns' => $this->columns,
+        ];
+    }
+
     /**
      * @return string
      */
@@ -67,7 +76,7 @@ class Index
         if (empty($this->name) && !empty($this->columns)) {
             $idxName = '';
             foreach ($this->columns as $col) {
-                $idxName .= strtolower($col) . '_';
+                $idxName .= strtolower($col).'_';
             }
 
             return rtrim($idxName, '_');
@@ -87,12 +96,27 @@ class Index
         return $this;
     }
 
-    public function __toArray()
+    public function toSql()
     {
-        return [
-            'name'    => $this->getName(),
-            'columns' => $this->columns,
-        ];
-    }
+        if (empty($this->tableName)) {
+            return '';
+        }
+        if ($this->changeType === self::NO_CHANGE) {
+            return '';
+        }
 
+        $indexName = $this->getName();
+        $columnSql = implode(',', $this->columns);
+
+        switch ($this->changeType) {
+            case self::IS_NEW:
+                return "CREATE INDEX {$indexName} ON {$this->tableName}({$columnSql})";
+            case self::IS_MODIFIED:
+                return ""; // no implement for modify index
+            case self::TO_DELETE:
+                return "DROP INDEX {$indexName}";
+            default:
+                return '';
+        }
+    }
 }

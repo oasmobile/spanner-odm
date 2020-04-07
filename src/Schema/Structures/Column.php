@@ -7,7 +7,7 @@ namespace Oasis\Mlib\ODM\Spanner\Schema\Structures;
  * Class Column
  * @package Oasis\Mlib\ODM\Spanner\Schema\Structure
  */
-class Column
+class Column extends ComparableItem
 {
     /**
      * @var string
@@ -31,6 +31,27 @@ class Column
      * @var string
      */
     private $fullType = '';
+
+    /**
+     * @var string
+     */
+    private $tableName = '';
+
+    /**
+     * @return string
+     */
+    public function getTableName()
+    {
+        return $this->tableName;
+    }
+
+    /**
+     * @param  string  $tableName
+     */
+    public function setTableName($tableName)
+    {
+        $this->tableName = $tableName;
+    }
 
     /**
      * @return string
@@ -109,6 +130,7 @@ class Column
     {
         return [
             'name'     => $this->name,
+            'table'    => $this->tableName,
             'type'     => $this->type,
             'fullType' => $this->fullType,
             'length'   => $this->length,
@@ -178,4 +200,25 @@ class Column
         }
     }
 
+
+    public function toSql()
+    {
+        if (empty($this->tableName)) {
+            return '';
+        }
+        if ($this->changeType === self::NO_CHANGE) {
+            return '';
+        }
+
+        switch ($this->changeType) {
+            case self::IS_NEW:
+                return "ALTER TABLE {$this->tableName} ADD COLUMN {$this->name} {$this->fullType}";
+            case self::IS_MODIFIED:
+                return "ALTER TABLE {$this->tableName} ALTER COLUMN {$this->name} {$this->fullType}";
+            case self::TO_DELETE:
+                return "ALTER TABLE {$this->tableName} DROP COLUMN {$this->name}";
+            default:
+                return '';
+        }
+    }
 }

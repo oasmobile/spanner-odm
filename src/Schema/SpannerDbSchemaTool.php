@@ -15,6 +15,7 @@ use Oasis\Mlib\ODM\Dynamodb\ItemReflection;
 use Oasis\Mlib\ODM\Spanner\Driver\Google\SpannerDatabaseManager;
 use Oasis\Mlib\ODM\Spanner\Driver\Google\SpannerTable;
 use Oasis\Mlib\ODM\Spanner\Schema\Structures\Column;
+use Oasis\Mlib\ODM\Spanner\Schema\Structures\ComparableItem;
 use Oasis\Mlib\ODM\Spanner\Schema\Structures\Index;
 use Oasis\Mlib\ODM\Spanner\Schema\Structures\Table;
 
@@ -72,7 +73,17 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
      */
     public function dropSchema()
     {
-        $this->getSpannerManager()->testMatch();
+        $tableFromClass = $this->getTableInfoFromClasses();
+
+        /**
+         * @var string $name
+         * @var Table $table
+         */
+        foreach ($tableFromClass as $name => $table) {
+            $table->setChangeType(ComparableItem::TO_DELETE);
+            $this->outputWrite($table->toSql());
+        }
+        $this->outputWrite("All tables have been removed");
     }
 
     protected function getSpannerManager()
@@ -93,17 +104,27 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
      */
     protected function updateTableSchemas($skipExisting, $dryRun)
     {
-//        $tablesFromDDL  = $this->getSpannerManager()->listTables();
-        $tableFromClass = $this->getTableInfoFromClasses();
+        $tablesFromDB     = $this->getSpannerManager()->listTables();
+        $tableFromClasses = $this->getTableInfoFromClasses();
+        $compareResult    = $this->compareTableSet($tablesFromDB, $tableFromClasses);
 
-        /**
-         * @var string $name
-         * @var Table $table
-         */
-        foreach ($tableFromClass as $name => $table) {
-            echo PHP_EOL.$name.PHP_EOL;
-            print_r($table->__toArray());
+        if ($dryRun) {
+            foreach ($compareResult as $sqlText) {
+                $this->outputWrite($sqlText);
+            }
         }
+        else {
+            $this->outputWrite('Run all DDL');
+        }
+
+        //        /**
+        //         * @var string $name
+        //         * @var Table $table
+        //         */
+        //        foreach ($tableFromClass as $name => $table) {
+        //            echo PHP_EOL.$name.PHP_EOL;
+        //            print_r($table->__toArray());
+        //        }
     }
 
     protected function getTableInfoFromClasses()
@@ -166,5 +187,86 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
         }
 
         return $tableList;
+    }
+
+    protected function compareTableSet($tablesInDatabase, $tablesFromEntities)
+    {
+        $compareResult = [];
+
+        /**
+         * 1. find new tables and tables need to change
+         *
+         * @var string $name
+         * @var Table $table
+         */
+        foreach ($tablesFromEntities as $name => $table) {
+            if (!key_exists($name, $tablesInDatabase)) {
+                $table->setChangeType(ComparableItem::IS_NEW);
+                $compareResult[] = $table->toSql();
+            }
+            else {
+                $tableCompareRet = $this->compareTable($table, $tablesInDatabase[$name]);
+                $compareResult   = array_merge($compareResult, $tableCompareRet);
+            }
+        }
+
+        /**
+         * 1. find tables to remove
+         *
+         * @var string $name2
+         * @var Table $table2
+         */
+        foreach ($tablesInDatabase as $name2 => $table2) {
+            if (!key_exists($name2, $tablesFromEntities)) {
+                $table2->setChangeType(ComparableItem::TO_DELETE);
+                $compareResult[] = $table2->toSql();
+            }
+        }
+
+        return $compareResult;
+    }
+
+
+    protected function compareTable(Table $tableFromEntity, Table $tableInDatabase)
+    {
+        $result = [];
+
+        // find new columns or columns need to change
+        foreach ($tableFromEntity->getColumns() as $column) {
+            $changeType = $tableInDatabase->compareColumn($column);
+            if ($changeType == ComparableItem::NO_CHANGE) {
+                continue;
+            }
+            $column->setChangeType($changeType);
+            $result[] = $column->toSql();
+        }
+
+        // find columns to delete
+        foreach ($tableInDatabase->getColumns() as $col) {
+            if ($tableFromEntity->hasColumn($col) === false) {
+                $col->setChangeType(ComparableItem::TO_DELETE);
+                $result[] = $col->toSql();
+            }
+        }
+
+        // find new index
+        foreach ($tableFromEntity->getIndexs() as $index) {
+            $changeType = $tableInDatabase->compareIndex($index);
+            if ($changeType == ComparableItem::NO_CHANGE) {
+                continue;
+            }
+            $index->setChangeType($changeType);
+            $result[] = $index->toSql();
+        }
+
+        // find index to delete
+        foreach ($tableInDatabase->getIndexs() as $idx) {
+            if ($tableFromEntity->hasIndex($idx) === false) {
+                $idx->setChangeType(ComparableItem::TO_DELETE);
+                $result[] = $idx->toSql();
+            }
+        }
+
+        return $result;
     }
 }

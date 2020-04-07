@@ -7,7 +7,7 @@ namespace Oasis\Mlib\ODM\Spanner\Schema\Structures;
  * Class Table
  * @package Oasis\Mlib\ODM\Spanner\Schema\Structures
  */
-class Table
+class Table extends ComparableItem
 {
     /**
      * @var string
@@ -28,6 +28,17 @@ class Table
      * @var array
      */
     private $primaryKeyColumns = [];
+
+
+    /**
+     * @var array
+     */
+    private $columnMap = [];
+
+    /**
+     * @var array
+     */
+    private $indexMap = [];
 
     /**
      * @return array
@@ -70,6 +81,7 @@ class Table
      */
     public function appendIndex(Index $index)
     {
+        $index->setTableName($this->name);
         $this->indexs[] = $index;
 
         return $this;
@@ -102,6 +114,7 @@ class Table
      */
     public function appendColumn(Column $column)
     {
+        $column->setTableName($this->name);
         $this->columns[] = $column;
 
         return $this;
@@ -146,5 +159,82 @@ class Table
         return $table;
     }
 
+    public function toSql()
+    {
+        if ($this->changeType === self::NO_CHANGE) {
+            return '';
+        }
+
+        switch ($this->changeType) {
+            case self::IS_NEW:
+                $createTableSql = "CREATE TABLE {$this->name} (";
+                foreach ($this->columns as $column) {
+                    $createTableSql .= "{$column->getName()} {$column->getFullType()}, ";
+                }
+                $primaryKeyColumns = implode(',', $this->primaryKeyColumns);
+                $createTableSql    .= ") PRIMARY KEY({$primaryKeyColumns}})";
+
+                return $createTableSql;
+            case self::IS_MODIFIED:
+                return ""; // no implement for change table name
+            case self::TO_DELETE:
+                return "DROP TABLE {$this->name}";
+            default:
+                return '';
+        }
+    }
+
+    public function compareColumn(Column $column)
+    {
+        foreach ($this->columns as $col) {
+            if ($col->getName() == $column->getName()) {
+                if ($col->getType() == $column->getType()) {
+                    return self::NO_CHANGE;
+                }
+                else {
+                    return self::IS_MODIFIED;
+                }
+            }
+        }
+
+        return self::IS_NEW;
+    }
+
+    public function hasColumn(Column $column)
+    {
+        if (!empty($this->columnMap)) {
+            return in_array($column->getName(), $this->columnMap);
+        }
+
+        foreach ($this->columns as $col) {
+            $this->columnMap[] = $col->getName();
+        }
+
+        return in_array($column->getName(), $this->columnMap);
+    }
+
+    public function compareIndex(Index $index)
+    {
+        foreach ($this->indexs as $idx) {
+            if ($idx->getName() == $index->getName()) {
+                return self::NO_CHANGE;
+            }
+        }
+
+        return self::IS_NEW;
+    }
+
+    public function hasIndex(Index $index)
+    {
+        if (!empty($this->indexMap)) {
+            return in_array($index->getName(), $this->indexMap);
+        }
+
+        foreach ($this->indexs as $idx) {
+            $this->indexMap[] = $idx->getName();
+        }
+
+        return in_array($index->getName(), $this->indexMap);
+    }
 
 }
