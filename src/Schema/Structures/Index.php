@@ -91,7 +91,7 @@ class Index extends ComparableItem
      */
     public function setName($name)
     {
-        $this->name = $name;
+        $this->name = str_replace("-", '_', $name);
 
         return $this;
     }

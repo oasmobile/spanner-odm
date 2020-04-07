@@ -203,7 +203,9 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
                     $indexColumn[] = $reflection->getFieldNameByPropertyName($globalSecondaryIndex->range);
                 }
                 $table->appendIndex(
-                    (new Index())->setColumns($indexColumn)
+                    (new Index())
+                        ->setColumns($indexColumn)
+                        ->setName($globalSecondaryIndex->name)
                 );
             }
 

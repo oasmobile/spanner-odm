@@ -279,4 +279,50 @@ class ItemManagerTest extends TestCase
         $this->itemManager->flush();
     }
 
+    public function testMapAndListData()
+    {
+        $game = new ConsoleGame();
+        $game->setGamecode('ps4koi-'.time());
+        $game->setFamily('ps4');
+        $game->setLanguage('en');
+        $game->setAchievements(
+            [
+//                "all"   => 10,
+//                "hello" => 30,
+//                "deep"  => [
+//                    "a" => "xyz",
+//                    "b" => "jjk",
+//                ],
+            ]
+        );
+        $game->setAuthors(
+            [
+                "james",
+                "curry",
+                "love",
+            ]
+        );
+        $this->itemManager->persist($game);
+        $this->itemManager->flush();
+
+        $game->setAuthors(
+            [
+                "durant",
+                "green",
+            ]
+        );
+        $this->itemManager->flush();
+
+        $game->setAchievements(
+            [
+//                "all"   => 10,
+//                "hello" => 30,
+//                "deep"  => [
+//                    "a" => "xyz",
+//                ],
+            ]
+        );
+        $this->itemManager->flush();
+    }
+
 }
