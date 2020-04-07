@@ -81,9 +81,14 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
          */
         foreach ($tableFromClass as $name => $table) {
             $table->setChangeType(ComparableItem::TO_DELETE);
-            $this->outputWrite($table->toSql());
+            $this->getSpannerManager()->runDDL(
+                $table->toSql(),
+                function ($text) {
+                    $this->outputWrite($text);
+                }
+            );
         }
-        $this->outputWrite("All tables have been removed");
+        $this->outputWrite("Done.");
     }
 
     protected function getSpannerManager()
@@ -104,9 +109,9 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
      */
     protected function updateTableSchemas($skipExisting, $dryRun)
     {
-        $tablesFromDB     = $this->getSpannerManager()->listTables();
-        $tableFromClasses = $this->getTableInfoFromClasses();
-        $compareResult    = $this->compareTableSet($tablesFromDB, $tableFromClasses);
+        $tablesFromDB    = $this->getSpannerManager()->listTables();
+        $tablesFromClass = $this->getTableInfoFromClasses();
+        $compareResult   = $this->compareTableSet($tablesFromDB, $tablesFromClass);
 
         if ($dryRun) {
             foreach ($compareResult as $sqlText) {
@@ -114,17 +119,16 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
             }
         }
         else {
-            $this->outputWrite('Run all DDL');
+            foreach ($compareResult as $sqlText) {
+                $this->getSpannerManager()->runDDL(
+                    $sqlText,
+                    function ($text) {
+                        $this->outputWrite($text);
+                    }
+                );
+            }
+            $this->outputWrite('Done.');
         }
-
-        //        /**
-        //         * @var string $name
-        //         * @var Table $table
-        //         */
-        //        foreach ($tableFromClass as $name => $table) {
-        //            echo PHP_EOL.$name.PHP_EOL;
-        //            print_r($table->__toArray());
-        //        }
     }
 
     protected function getTableInfoFromClasses()
@@ -194,7 +198,7 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
         $compareResult = [];
 
         /**
-         * 1. find new tables and tables need to change
+         * 1. find new tables and tables need to be changed
          *
          * @var string $name
          * @var Table $table
@@ -211,7 +215,7 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
         }
 
         /**
-         * 1. find tables to remove
+         * 1. find tables to be removed
          *
          * @var string $name2
          * @var Table $table2
@@ -231,7 +235,7 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
     {
         $result = [];
 
-        // find new columns or columns need to change
+        // find new columns or columns need to be changed
         foreach ($tableFromEntity->getColumns() as $column) {
             $changeType = $tableInDatabase->compareColumn($column);
             if ($changeType == ComparableItem::NO_CHANGE) {
@@ -241,7 +245,7 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
             $result[] = $column->toSql();
         }
 
-        // find columns to delete
+        // find columns to be removed
         foreach ($tableInDatabase->getColumns() as $col) {
             if ($tableFromEntity->hasColumn($col) === false) {
                 $col->setChangeType(ComparableItem::TO_DELETE);
@@ -259,7 +263,7 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
             $result[] = $index->toSql();
         }
 
-        // find index to delete
+        // find index to to delete
         foreach ($tableInDatabase->getIndexs() as $idx) {
             if ($tableFromEntity->hasIndex($idx) === false) {
                 $idx->setChangeType(ComparableItem::TO_DELETE);

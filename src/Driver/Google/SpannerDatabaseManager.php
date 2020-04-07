@@ -276,5 +276,20 @@ class SpannerDatabaseManager
         return $index;
     }
 
+    public function runDDL($sqlText, callable $interFunction)
+    {
+        $interFunction($sqlText);
+        $operation = $this->database->updateDdl($sqlText);
+        $result    = $operation->pollUntilComplete();
+
+        // the result is an empty array on success and null on failed
+        if (is_array($result)) {
+            $interFunction("success.");
+        }
+        else {
+            $interFunction("failed.");
+        }
+    }
+
 
 }
