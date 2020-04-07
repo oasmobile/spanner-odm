@@ -72,15 +72,6 @@ class SpannerDatabaseManager
     }
 
     /**
-     * @param $tableName
-     * @return string|string[]
-     */
-    public static function convertTableName($tableName)
-    {
-        return str_replace('-', '_', $tableName);
-    }
-
-    /**
      * @return array
      */
     public function listTables()
@@ -110,24 +101,6 @@ class SpannerDatabaseManager
         }
 
         return $tableList;
-    }
-
-    public function testMatch()
-    {
-        $ddlTexts = "CREATE INDEX keyUsername ON User(username)";
-        $pattern1 = '#^CREATE\sINDEX\s(?P<index>\w+)\s+(ON)\s+(?P<table>\w+)\(#';
-        preg_match_all(
-            $pattern1,
-            $ddlTexts,
-            $matches
-        );
-
-        if (empty($matches)) {
-            echo "not matched".PHP_EOL;
-        }
-        else {
-            print_r($matches);
-        }
     }
 
     /**
