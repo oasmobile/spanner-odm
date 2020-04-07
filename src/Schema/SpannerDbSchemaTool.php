@@ -80,6 +80,18 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
          * @var Table $table
          */
         foreach ($tableFromClass as $name => $table) {
+            // drop table index first
+            foreach ($table->getIndexs() as $index) {
+                $index->setChangeType(ComparableItem::TO_DELETE);
+                $this->getSpannerManager()->runDDL(
+                    $index->toSql(),
+                    function ($text) {
+                        $this->outputWrite($text);
+                    }
+                );
+            }
+
+            // drop table
             $table->setChangeType(ComparableItem::TO_DELETE);
             $this->getSpannerManager()->runDDL(
                 $table->toSql(),
@@ -223,6 +235,13 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
         foreach ($tablesInDatabase as $name2 => $table2) {
             if (!key_exists($name2, $tablesFromEntities)) {
                 $table2->setChangeType(ComparableItem::TO_DELETE);
+
+                // drop table index before drop table itself
+                foreach ($table2->getIndexs() as $index) {
+                    $index->setChangeType(ComparableItem::TO_DELETE);
+                    $compareResult[] = $index->toSql();
+                }
+
                 $compareResult[] = $table2->toSql();
             }
         }

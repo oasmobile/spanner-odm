@@ -153,7 +153,7 @@ class SpannerDatabaseManager
 
             // extract columns
             $colStr     = $matches['col'][0];
-            $patternCol = "/(?P<name>\w+)\s+(?P<type>\w+)\((?P<len>\d+)\)/";
+            $patternCol = "/(?P<name>\w+)\s+(?P<type>\w+)\((?P<len>\w+)\)/";
             preg_match_all($patternCol, $colStr, $matchesCol);
 
             $colCount = count($matchesCol['name']);

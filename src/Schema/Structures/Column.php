@@ -20,9 +20,9 @@ class Column extends ComparableItem
     private $type = '';
 
     /**
-     * @var int
+     * @var string
      */
-    private $length = 0;
+    private $length = '';
 
     /**
      *
@@ -70,7 +70,7 @@ class Column extends ComparableItem
     }
 
     /**
-     * @return int
+     * @return string
      */
     public function getLength()
     {
@@ -78,7 +78,7 @@ class Column extends ComparableItem
     }
 
     /**
-     * @param  int  $length
+     * @param  string $length
      * @return Column
      */
     public function setLength($length)
