@@ -73,34 +73,43 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
      */
     public function dropSchema()
     {
-        $tableFromClass = $this->getTableInfoFromClasses();
+        $tablesFromDB = $this->getSpannerManager()->listTables();
+
+        if (empty($tablesFromDB)) {
+            $this->outputWrite("No tables in database.");
+
+            return;
+        }
+
+        $ddlResult = [];
 
         /**
          * @var string $name
          * @var Table $table
          */
-        foreach ($tableFromClass as $name => $table) {
-            // drop table index first
+        foreach ($tablesFromDB as $name => $table) {
+            $table->setChangeType(ComparableItem::TO_DELETE);
+
+            // drop table index before drop table itself
             foreach ($table->getIndexs() as $index) {
                 $index->setChangeType(ComparableItem::TO_DELETE);
+                $ddlResult[] = $index->toSql();
+            }
+
+            $ddlResult[] = $table->toSql();
+        }
+
+        if (!empty($ddlResult)) {
+            foreach ($ddlResult as $sqlText) {
                 $this->getSpannerManager()->runDDL(
-                    $index->toSql(),
+                    $sqlText,
                     function ($text) {
                         $this->outputWrite($text);
                     }
                 );
             }
-
-            // drop table
-            $table->setChangeType(ComparableItem::TO_DELETE);
-            $this->getSpannerManager()->runDDL(
-                $table->toSql(),
-                function ($text) {
-                    $this->outputWrite($text);
-                }
-            );
         }
-        $this->outputWrite("Done.");
+        $this->outputWrite('Done.');
     }
 
     protected function getSpannerManager()
@@ -219,6 +228,11 @@ class SpannerDbSchemaTool extends AbstractSchemaTool
             if (!key_exists($name, $tablesInDatabase)) {
                 $table->setChangeType(ComparableItem::IS_NEW);
                 $compareResult[] = $table->toSql();
+                // create table index
+                foreach ($table->getIndexs() as $index) {
+                    $index->setChangeType(ComparableItem::IS_NEW);
+                    $compareResult[] = $index->toSql();
+                }
             }
             else {
                 $tableCompareRet = $this->compareTable($table, $tablesInDatabase[$name]);

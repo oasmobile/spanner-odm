@@ -172,7 +172,7 @@ class Table extends ComparableItem
                     $createTableSql .= "{$column->getName()} {$column->getFullType()}, ";
                 }
                 $primaryKeyColumns = implode(',', $this->primaryKeyColumns);
-                $createTableSql    .= ") PRIMARY KEY({$primaryKeyColumns}})";
+                $createTableSql    .= ") PRIMARY KEY({$primaryKeyColumns})";
 
                 return $createTableSql;
             case self::IS_MODIFIED:
