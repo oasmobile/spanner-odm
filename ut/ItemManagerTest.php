@@ -384,6 +384,8 @@ class ItemManagerTest extends TestCase
         $this->itemManager->flush();
         $this->itemManager->setSkipCheckAndSet(false);
 
+        $this->assertEquals(10,sizeof($users));
+
         return $users;
     }
 
@@ -470,25 +472,13 @@ class ItemManagerTest extends TestCase
 
     public function testQueryWithAttributeKey()
     {
-        $users = $this->itemManager->getRepository(User::class)
+        self::expectException(ODMException::class);
+        $this->itemManager->getRepository(User::class)
             ->query(
-                '#hometown = :hometown AND #wage > :wage',
-                [':hometown' => 'new york', ':wage' => 100],
+                '#hometown = :hometown AND #salary > :wage',
+                [':hometown' => 'NY', ':wage' => 100],
                 'hometown-salary-index'
             );
-
-        $this->assertNotEmpty($users);
-
-        //        if (!empty($users)) {
-        //            echo PHP_EOL;
-        //            /** @var User $user */
-        //            foreach ($users as $user) {
-        //                echo $user->getId().PHP_EOL;
-        //            }
-        //        }
-        //        else {
-        //            echo "No record found".PHP_EOL;
-        //        }
     }
 
     public function testQueryCountWithAttributeKey()
