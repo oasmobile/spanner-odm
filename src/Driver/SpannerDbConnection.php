@@ -64,13 +64,13 @@ class SpannerDbConnection extends AbstractDbConnection
 
     public function batchDelete(array $objs, $concurrency = 10, $maxDelay = 15000)
     {
-        return $this->spannerTable->batchDelete($objs);
+        return $this->getSpannerTable()->batchDelete($objs);
     }
 
     public function batchPut(array $objs, $concurrency = 10, $maxDelay = 15000)
     {
         $objs = $this->handleInputData($objs, true);
-        $this->spannerTable->batchPut($objs);
+        $this->getSpannerTable()->batchPut($objs);
     }
 
     public function set(array $obj, $checkValues = [])
