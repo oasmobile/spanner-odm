@@ -11,12 +11,10 @@ namespace Oasis\Mlib\ODM\Spanner\Driver\Google;
 
 
 use Exception;
-use Google\Auth\Cache\SysVCacheItemPool;
 use Google\Cloud\Core\Exception\AbortedException as AbortedExceptionAlias;
 use Google\Cloud\Core\Exception\GoogleException as GoogleExceptionAlias;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\KeySet;
-use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\SpannerClient;
 use Google\Cloud\Spanner\Transaction;
 use Oasis\Mlib\ODM\Dynamodb\Exceptions\DataConsistencyException;
@@ -51,6 +49,10 @@ class SpannerTable
 
     /**
      * SpannerTable constructor.
+     *
+     * !!! Disable use of session case for unexpected RuntimeException:
+     *  "A session did not become available in the allotted number of attempts." in CacheSessionPool.php:740
+     *
      * @param  array  $dbConfig
      * @param $tableName
      * @param  ItemReflection  $itemReflection
@@ -58,18 +60,18 @@ class SpannerTable
      */
     public function __construct(array $dbConfig, $tableName, ItemReflection $itemReflection)
     {
-        $authCache    = new SysVCacheItemPool();
-        $sessionCache = new SysVCacheItemPool(
-            [
-                // Use a different project identifier for ftok than the default
-                'proj' => 'B',
-            ]
-        );
+//        $authCache    = new SysVCacheItemPool();
+//        $sessionCache = new SysVCacheItemPool(
+//            [
+//                // Use a different project identifier for ftok than the default
+//                'proj' => 'B',
+//            ]
+//        );
 
         $spanner = new SpannerClient(
             [
                 'projectId' => $dbConfig['project_id'],
-                'authCache' => $authCache,
+//                'authCache' => $authCache,
             ]
         );
 
@@ -77,21 +79,21 @@ class SpannerTable
         $instance = $spanner->instance($dbConfig['instance_id']);
 
         // Get a Cloud Spanner database by ID.
-        $sessionConfig        = $this->getSessionPoolConfig($dbConfig);
-        $sessionPool          = new CacheSessionPool(
-            $sessionCache,
-            [
-                'minSessions' => $sessionConfig['minSessions'],
-                'maxSessions' => $sessionConfig['maxSessions'],
-            ]
-        );
-        $this->database       = $instance->database($dbConfig['database_id'], ['sessionPool' => $sessionPool]);
+//        $sessionConfig        = $this->getSessionPoolConfig($dbConfig);
+//        $sessionPool          = new CacheSessionPool(
+//            $sessionCache,
+//            [
+//                'minSessions' => $sessionConfig['minSessions'],
+//                'maxSessions' => $sessionConfig['maxSessions'],
+//            ]
+//        );
+        $this->database       = $instance->database($dbConfig['database_id']/*, ['sessionPool' => $sessionPool]*/);
         $this->tableName      = self::convertTableName($tableName);
         $this->itemReflection = $itemReflection;
         $this->attributeTypes = $itemReflection->getAttributeTypes();
 
         // warm up will actually create the sessions for the first time.
-        $sessionPool->warmup();
+//        $sessionPool->warmup();
     }
 
     protected function getSessionPoolConfig($dbConfig)

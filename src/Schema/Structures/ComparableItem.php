@@ -6,10 +6,10 @@ namespace Oasis\Mlib\ODM\Spanner\Schema\Structures;
 
 abstract class ComparableItem
 {
-    const NO_CHANGE   = 0;
-    const IS_NEW      = 1;
-    const IS_MODIFIED = 2;
-    const TO_DELETE   = 3;
+    public const NO_CHANGE   = 0;
+    public const IS_NEW      = 1;
+    public const IS_MODIFIED = 2;
+    public const TO_DELETE   = 3;
 
     /**
      * @var int
