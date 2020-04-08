@@ -281,18 +281,19 @@ class ItemManagerTest extends TestCase
 
     public function testMapAndListData()
     {
-        $game = new ConsoleGame();
-        $game->setGamecode('ps4koi-'.time());
+        $gameCode = 'ps4koi-'.time();
+        $game     = new ConsoleGame();
+        $game->setGamecode($gameCode);
         $game->setFamily('ps4');
         $game->setLanguage('en');
         $game->setAchievements(
             [
-//                "all"   => 10,
-//                "hello" => 30,
-//                "deep"  => [
-//                    "a" => "xyz",
-//                    "b" => "jjk",
-//                ],
+                "all"   => 10,
+                "hello" => 30,
+                "deep"  => [
+                    "a" => "xyz",
+                    "b" => "jjk",
+                ],
             ]
         );
         $game->setAuthors(
@@ -305,24 +306,33 @@ class ItemManagerTest extends TestCase
         $this->itemManager->persist($game);
         $this->itemManager->flush();
 
-        $game->setAuthors(
-            [
-                "durant",
-                "green",
-            ]
-        );
+        $authorsList = [
+            "durant",
+            "green",
+        ];
+
+        $achievements = [
+            "all"   => 10,
+            "hello" => 30,
+            "deep"  => [
+                "a" => "xyz",
+            ],
+        ];
+
+        $game->setAuthors($authorsList);
         $this->itemManager->flush();
 
-        $game->setAchievements(
-            [
-//                "all"   => 10,
-//                "hello" => 30,
-//                "deep"  => [
-//                    "a" => "xyz",
-//                ],
-            ]
-        );
+        $game->setAchievements($achievements);
         $this->itemManager->flush();
+
+        /** @var ConsoleGame $gameRecord */
+        $gameRecord = $this->itemManager->getRepository(ConsoleGame::class)->get(['gamecode' => $gameCode]);
+
+        $this->assertEquals($authorsList, $gameRecord->getAuthors());
+        $this->assertEquals($achievements, $gameRecord->getAchievements());
+
+        print_r($gameRecord->getAchievements());
+        print_r($gameRecord->getAuthors());
     }
 
 }

@@ -72,12 +72,74 @@ class SpannerDbConnection extends AbstractDbConnection
 
     public function set(array $obj, $checkValues = [])
     {
+        $obj = $this->handleInputData($obj, false);
+
         return $this->getSpannerTable()->set($obj, $checkValues);
+    }
+
+    /**
+     * Spanner does't support data type "map",
+     * so which need to be serialized before data saving
+     *
+     * @param  mixed  $objData
+     * @param  bool  $isObjList
+     * @return mixed
+     */
+    protected function handleInputData($objData, $isObjList = false)
+    {
+        if ($isObjList) {
+            foreach ($objData as $idx => $obj) {
+                $objData[$idx] = $this->serializeMapTypeValue($obj);
+            }
+        }
+        else {
+            $objData = $this->serializeMapTypeValue($objData);
+        }
+
+        return $objData;
+    }
+
+    protected function serializeMapTypeValue($obj)
+    {
+        foreach ($this->attributeTypes as $key => $type) {
+            if ($type == 'map') {
+                $obj[$key] = serialize($obj[$key]);
+            }
+        }
+
+        return $obj;
     }
 
     public function get(array $keys, $is_consistent_read = false, $projectedFields = [])
     {
-        return $this->getSpannerTable()->get($keys);
+        $ret = $this->getSpannerTable()->get($keys);
+
+        return $this->handleOutputData($ret, false);
+    }
+
+    protected function handleOutputData($oriData, $isObjList = false)
+    {
+        if ($isObjList) {
+            foreach ($oriData as $idx => $obj) {
+                $oriData[$idx] = $this->unserializeMapTypeValue($obj);
+            }
+        }
+        else {
+            $oriData = $this->serializeMapTypeValue($oriData);
+        }
+
+        return $oriData;
+    }
+
+    protected function unserializeMapTypeValue($obj)
+    {
+        foreach ($this->attributeTypes as $key => $type) {
+            if ($type == 'map') {
+                $obj[$key] = unserialize($obj[$key]);
+            }
+        }
+
+        return $obj;
     }
 
     public function query(

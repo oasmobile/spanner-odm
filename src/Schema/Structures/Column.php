@@ -183,8 +183,8 @@ class Column extends ComparableItem
                 ],
             "map"    =>
                 [
-                    "T" => "ARRAY",
-                    "F" => "ARRAY<STRING(MAX)>",
+                    "T" => "STRING",
+                    "F" => "STRING(MAX)",
                 ],
 
         ];
