@@ -50,8 +50,9 @@ class SpannerTable
     /**
      * SpannerTable constructor.
      *
-     * !!! Disable use of session case for unexpected RuntimeException:
+     * !!! Disable use of session cache for unexpected RuntimeException:
      *  "A session did not become available in the allotted number of attempts." in CacheSessionPool.php:740
+     * when use read-and-write transaction multi times
      *
      * @param  array  $dbConfig
      * @param $tableName
