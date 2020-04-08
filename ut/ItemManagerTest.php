@@ -77,7 +77,6 @@ class ItemManagerTest extends TestCase
      *
      * @param $id
      * @return string
-     * @noinspection PhpParamsInspection
      */
     public function testEdit($id)
     {
@@ -104,7 +103,6 @@ class ItemManagerTest extends TestCase
      * @depends testEdit
      *
      * @param $id
-     * @noinspection PhpParamsInspection
      */
     public function testCASEnabled($id)
     {
@@ -121,7 +119,6 @@ class ItemManagerTest extends TestCase
         $this->itemManager2->flush();
     }
 
-    /** @noinspection PhpParamsInspection */
     public function testQueryWithNoneAttributeKey()
     {
         self::expectException(ODMException::class);
@@ -325,14 +322,17 @@ class ItemManagerTest extends TestCase
         $game->setAchievements($achievements);
         $this->itemManager->flush();
 
+        // read and test
+        $this->itemManager->clear();
+
         /** @var ConsoleGame $gameRecord */
         $gameRecord = $this->itemManager->getRepository(ConsoleGame::class)->get(['gamecode' => $gameCode]);
 
         $this->assertEquals($authorsList, $gameRecord->getAuthors());
         $this->assertEquals($achievements, $gameRecord->getAchievements());
 
-        print_r($gameRecord->getAchievements());
-        print_r($gameRecord->getAuthors());
+        // print_r($gameRecord->getAchievements());
+
     }
 
 }

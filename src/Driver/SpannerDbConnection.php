@@ -35,7 +35,9 @@ class SpannerDbConnection extends AbstractDbConnection
         $retryDelay = 0,
         $maxDelay = 15000
     ) {
-        return $this->getSpannerTable()->batchGet($keys);
+        $ret = $this->getSpannerTable()->batchGet($keys);
+
+        return $this->handleOutputData($ret, true);
     }
 
     protected function getSpannerTable()
@@ -67,6 +69,7 @@ class SpannerDbConnection extends AbstractDbConnection
 
     public function batchPut(array $objs, $concurrency = 10, $maxDelay = 15000)
     {
+        $objs = $this->handleInputData($objs, true);
         $this->spannerTable->batchPut($objs);
     }
 
@@ -125,7 +128,7 @@ class SpannerDbConnection extends AbstractDbConnection
             }
         }
         else {
-            $oriData = $this->serializeMapTypeValue($oriData);
+            $oriData = $this->unserializeMapTypeValue($oriData);
         }
 
         return $oriData;
@@ -154,13 +157,15 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        return $this->getSpannerTable()->query(
+        $results = $this->getSpannerTable()->query(
             $keyConditions,
             $fieldsMapping,
             $paramsMapping,
             false,
             $evaluationLimit
         );
+
+        return $this->handleOutputData($results, true);
     }
 
     public function queryAndRun(
@@ -183,7 +188,7 @@ class SpannerDbConnection extends AbstractDbConnection
                     return;
                 }
 
-                $ret = call_user_func($callback, $item);
+                $ret = call_user_func($callback, $this->handleOutputData($item));
                 if ($ret === false) {
                     $stoppedByCallback = true;
                 }
@@ -234,7 +239,7 @@ class SpannerDbConnection extends AbstractDbConnection
                     return;
                 }
 
-                $ret = call_user_func($callback, $item);
+                $ret = call_user_func($callback, $this->handleOutputData($item));
                 if ($ret === false) {
                     $stoppedByCallback = true;
                 }
@@ -253,13 +258,15 @@ class SpannerDbConnection extends AbstractDbConnection
         $isAscendingOrder = true,
         $projectedFields = []
     ) {
-        return $this->getSpannerTable()->query(
+        $results = $this->getSpannerTable()->query(
             $filterExpression,
             $fieldsMapping,
             $paramsMapping,
             false,
             $evaluationLimit
         );
+
+        return $this->handleOutputData($results, true);
     }
 
     public function scanAndRun(
@@ -281,7 +288,7 @@ class SpannerDbConnection extends AbstractDbConnection
                     return;
                 }
 
-                $ret = call_user_func($callback, $item);
+                $ret = call_user_func($callback, $this->handleOutputData($item));
                 if ($ret === false) {
                     $stoppedByCallback = true;
                 }
@@ -309,7 +316,7 @@ class SpannerDbConnection extends AbstractDbConnection
                     return;
                 }
 
-                $ret = call_user_func($callback, $item);
+                $ret = call_user_func($callback, $this->handleOutputData($item));
                 if ($ret === false) {
                     $stoppedByCallback = true;
                 }
